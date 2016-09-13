@@ -1,0 +1,187 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Tue May 10 08:17:26 2016
+
+@author: perumal
+"""
+
+import numpy as np
+import re
+import os
+import matplotlib.pyplot as plt
+
+
+###############################################################################
+
+###############################################################################
+
+os.chdir('U:/p08/2016/data/11002235/raw')
+
+def readfio(filename):
+    """
+    READ *.fio file into dictionary of arrays
+    """
+    cols = []
+    # Open file
+    f = open(filename +'.fio')
+    counter = 0
+    for n, line in enumerate(f):
+        #if "Col" in line:   # This command can also be replaced with the below line 
+        if line.strip().startswith('zs'):
+            print(line)
+            print(filename)
+        if line.strip().startswith('Col'):
+            linestoskip = n +  1
+            cols.append(line.split()[2]) #To have only the column headers in a list
+            counter = counter + 1 #gives the number of columns, in principle it is not necessary
+    f.close() # close the file 
+    # Read numerical data without header
+    #print (cols)
+    data = np.genfromtxt(filename+'.fio',skip_header=linestoskip, skip_footer =1)
+    return data, cols
+
+###############################################################################
+
+###############################################################################
+
+
+def plotsample(filename, shift, state, color, subplot_index):
+    data, cols = readfio(filename)
+    y = (data[:,cols.index('signalcounter_atten')]*shift )        #### Please replace with the correct y -axis
+    x = data[:,cols.index('phis')]                          #### Please replace with the correct x -axis
+    #x = data[:,cols.index('ys')] # Chi angle    
+    #x = (2*math.pi/wavelength)*(math.sin(math.radians(data[:,1]))+ math.sin(math.radians(data[:,2])-math.radians(data[:,1])))
+    #x = (2*np.pi/wavelength(energy))*(np.sin(np.radians(data[:,cols.index('phis')]))+
+    #np.sin(np.radians(data[:,cols.index('tt')])-np.radians(data[:,cols.index('phis')])))  
+    plt.subplot(subplot_index)      
+    plt.xlim([7, 10.6]) 
+    plt.ylim([1000, 1e6])
+    plt.semilogy(x,y, color = color,  label=state)
+    plt.xlabel('phis')                        #### (r'$Q_{z}$ ($\AA^{-1}$)')
+    plt.ylabel('Intensity [counts/sec]')
+    plt.legend(prop={'size':12},frameon=False,numpoints=1)
+    #plt.show()
+    #plt.clf()
+
+###############################################################################
+
+###############################################################################
+
+def wavelength(energy):
+    #Energy in KeV, so that's why eV is multiplied by 1000 
+    #meter has to be converted to Angstroms, so multiplied by 1e10
+    #global h, c
+    h = 6.626e-34  #joules
+    c = 2.998e8    #m/sec
+    eV = 1.602e-19 #Joules
+
+    wavelength = h*c/(energy*1000*eV)*1e10       
+    return wavelength
+    
+###############################################################################
+
+###############################################################################
+
+def meshplot(file_begin, file_end):
+    
+    #print(filename+str(file_begin))
+    data, cols = readfio(filename+'0'+str(file_begin))
+    
+    #print(filename)
+    grid = data[:,cols.index('perkinelmer_roi1')]#/data[:,cols.index('monitor_cts')]
+    for i in range(file_begin+1, file_end+1, 1):
+        if i < 1000:
+            data, cols = readfio(filename+str(i))
+            y = data[:,cols.index('perkinelmer_roi1')]#/data[:,cols.index('monitor_cts')]
+            grid = np.vstack((grid,y))
+            continue
+        elif i == 485:
+            data, cols = readfio(filename+str(490))
+            y = data[:,cols.index('signalcounter_atten')]#/data[:,cols.index('monitor_cts')]
+            grid = np.vstack((grid,y))
+            continue
+        data, cols = readfio(filename+str(i))
+        #print(len(data))
+        #print(filename+str(i))
+        y = data[:,cols.index('perkinelmer_roi1')]#/data[:,cols.index('monitor_cts')]
+        grid = np.vstack((grid,y))  
+        #print(grid)
+    
+    plt.imshow(grid, cmap='jet', aspect ='auto', interpolation= 'none')
+    plt.colorbar()
+    plt.xlabel("ys")
+    plt.ylabel("zs")
+    plt.show()
+    #plt.axis('off')
+###############################################################################
+
+###############################################################################
+    
+energy = 10.000 # in KeV
+
+filename = 'p08_128_GST-Si111_0'
+
+###############################################################################
+#### Plotting 1D data
+###############################################################################
+   
+#file_list = [[1106, 1112, 1125, 1122], 
+#            [1106,  1124, 1124, 1121], 
+#            [1106,  1110, 1113, 1120],
+#            [1106,  1107, 1117, 1114 ],
+#            [1106,  1108, 1118, 1115], 
+#            [1106,  1109, 1119, 1116]]
+#state = [['Reference', '700 ppV amorphized','recrystallized', 'immediate recryst.'],
+#        ['Reference', '700 ppV amorphized','recrystallized', 'immediate recryst.'],
+#        ['Reference', '700 ppV amorphized','recrystallized', 'immediate recryst.'],
+#        ['Reference', '700 ppV amorphized','recrystallized', 'immediate recryst.'],
+#        ['Reference', '700 ppV amorphized','recrystallized', 'immediate recryst.'],
+#        ['Reference', '700 ppV amorphized','recrystallized', 'immediate recryst.']]
+#subplots = [321, 322, 323,324,325, 326]
+   
+   
+
+file_list = [[1174, 1175, 1195, 1203], 
+            [1174, 1176, 1196, 1204],
+            [1174, 1177, 1205, 1205],
+            [1174, 1178, 1198, 1206],
+            [1174, 1179, 1199, 1211],  #1207 incomplete scan
+            [1174, 1180, 1200, 1212],
+            [1174, 1181, 1201, 1213],
+            [1174, 1182, 1202, 1214]]
+state = [['Reference', '550 ppV amorphized','recrystallized', 'immediate recryst.'],
+        ['Reference', '600 ppV amorphized','recrystallized', 'immediate recryst.'],
+        ['Reference', '650 ppV amorphized','recrystallized', 'immediate recryst.'],
+        ['Reference', '700 ppV amorphized','recrystallized', 'immediate recryst.'],
+        ['Reference', '750 ppV amorphized','recrystallized', 'immediate recryst.'],
+        ['Reference', '800 ppV amorphized','recrystallized', 'immediate recryst.'],
+        ['Reference', '850 ppV amorphized','recrystallized', 'immediate recryst.'],
+        ['Reference', '900 ppV amorphized','recrystallized', 'immediate recryst.']]
+subplots = [331, 332, 333,334,335, 336, 337, 338]
+
+
+#ini_file = 1174
+#end_file = 1182
+
+#colormap = plt.cm.brg
+#plt.gca().set_color_cycle([colormap(i) for i in np.linspace(0, 1, end_file-ini_file)])
+plt.figure(1)
+for i in range(len(file_list)):
+    color = ['r','k','b', 'g']
+    for j in range(len(file_list[i])):
+        file_to_plot = filename + str(file_list[i][j])        
+        plotsample(file_to_plot, 1, state[i][j], color[j], subplots[i])# i- ini_file +1)
+  
+plt.tight_layout()  
+#plotsample(filename + str(file_name))
+#plt.tight_layout()  
+#plt.axvline(1.805, color = 'k', linestyle = 'dotted')
+plt.savefig('D:/Synchrotron Data/2016_09/'+filename+'.png', dpi=300)
+plt.show()
+###############################################################################
+
+###############################################################################
+    
+#meshplot(617, 657)
+#plotsample('p08_128_GST-Si111_01290', 1, 'p08_146_GST-Si111_1294', 'b', 221)
+#plt.show()
